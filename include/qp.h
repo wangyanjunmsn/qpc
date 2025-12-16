@@ -30,10 +30,10 @@
 #define QP_H_
 
 //============================================================================
-#define QP_VERSION_STR  "8.1.1"
-#define QP_VERSION      811U
-// <VER>=810 <DATE>=251008
-#define QP_RELEASE      0x6A6334D4U
+#define QP_VERSION_STR  "8.1.2"
+#define QP_VERSION      812U
+// <VER>=812 <DATE>=260101
+#define QP_RELEASE      0x64F7B983U
 
 //----------------------------------------------------------------------------
 // default configuration settings
@@ -762,12 +762,5 @@ void QF_gcFromISR(QEvt const * const e);
 #ifndef QF_CRIT_EXIT_NOP
     #define QF_CRIT_EXIT_NOP() ((void)0)
 #endif // ndef QF_CRIT_EXIT_NOP
-
-//----------------------------------------------------------------------------
-// memory protection facilities
-
-#ifdef QF_MEM_ISOLATE
-    #error Memory isolation not supported in this QP edition, need SafeQP
-#endif
 
 #endif // QP_H_

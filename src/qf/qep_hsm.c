@@ -26,6 +26,7 @@
 // <www.state-machine.com/licensing>
 // <info@state-machine.com>
 //============================================================================
+#define QP_IMPL           // this is QP implementation
 #include "qp_port.h"      // QP port
 #include "qp_pkg.h"       // QP package-scope interface
 #include "qsafe.h"        // QP Functional Safety (FuSa) Subsystem
@@ -268,7 +269,7 @@ void QHsm_dispatch_(QAsm * const me,
     Q_UNUSED_PAR(qsId);
 #endif
 
-    // this state machine must be in a stable state configuration
+    // this state machine must be in a "stable state configuration"
     // NOTE: stable state configuration is established after every RTC step.
     Q_INVARIANT_LOCAL(300,
         QP_DIS_VERIFY(uintptr_t, me->state.uint, me->temp.uint));
@@ -277,7 +278,10 @@ void QHsm_dispatch_(QAsm * const me,
     Q_REQUIRE_LOCAL(310, e != (QEvt *)0);
 
     QStateHandler s = me->state.fun; // current state
-    me->temp.fun = Q_STATE_CAST(0); // invalidate
+#ifndef Q_UNSAFE
+    uintptr_t const state_dis = me->temp.uint; // from invariant-300
+#endif
+    me->temp.fun = Q_STATE_CAST(0); // invalidate "stable state configuration"
 
     QS_CRIT_STAT
     QS_TRAN0_(QS_QEP_DISPATCH, s); // output QS record
@@ -306,15 +310,19 @@ void QHsm_dispatch_(QAsm * const me,
         }
     } while (r == Q_RET_SUPER); // loop as long as superstate returned
 
-    if (r == Q_RET_IGNORED) { // was event e ignored?
+    // me->state should not change, so it must match the saved DIS
+    Q_INVARIANT_LOCAL(350,
+        QP_DIS_VERIFY(uintptr_t, me->state.uint, state_dis));
+
+    if (r == Q_RET_IGNORED) { // was event ignored?
         QS_TRAN0_(QS_QEP_IGNORED, me->state.fun); // output QS record
     }
-    else if (r == Q_RET_HANDLED) { // did the last handler handle event e?
+    else if (r == Q_RET_HANDLED) { // did the last handler handle the event?
         QS_TRAN0_(QS_QEP_INTERN_TRAN, s); // output QS record
     }
     else if ((r == Q_RET_TRAN) || (r == Q_RET_TRAN_HIST)) { // tran. taken?
-        // tran. must set temp to the target state
-        Q_ASSERT_LOCAL(350, me->temp.fun != Q_STATE_CAST(0));
+        // tran. must have set me->temp to the target state
+        Q_ASSERT_LOCAL(360, me->temp.fun != Q_STATE_CAST(0));
 
 #ifdef Q_SPY
         if (r == Q_RET_TRAN_HIST) { // tran. to history?
@@ -346,11 +354,11 @@ void QHsm_dispatch_(QAsm * const me,
         me->state.fun = path[0]; // change the current active state
     }
     else {
-        Q_ERROR_LOCAL(360); // last state handler returned impossible value
+        Q_ERROR_LOCAL(370); // last state handler returned impossible value
     }
 
 #ifndef Q_UNSAFE
-    // establish stable state configuration
+    // establish "stable state configuration"
     me->temp.uint = QP_DIS_UPDATE(uintptr_t, me->state.uint);
 #endif
 }
@@ -467,7 +475,7 @@ static int_fast8_t QHsm_tran_complex_(QAsm * const me,
 #else
         // exit the source 's'
         if ((*s)(me, &l_resEvt_[Q_EXIT_SIG]) == Q_RET_HANDLED) {
-            QS_STATE_ACT_(QS_QEP_STATE_EXIT, s);
+            QS_STATE_ACT_(QS_QEP_STATE_EXIT, s); // output QS record
         }
 #endif // def Q_SPY
 
@@ -528,7 +536,7 @@ static void QHsm_enter_target_(QAsm * const me,
     for (; ip >= 0; --ip) {
         // enter 'path[ip]'
         if ((*path[ip])(me, &l_resEvt_[Q_ENTRY_SIG]) == Q_RET_HANDLED) {
-            QS_STATE_ACT_(QS_QEP_STATE_ENTRY, path[ip]);
+            QS_STATE_ACT_(QS_QEP_STATE_ENTRY, path[ip]); // output QS record
         }
     }
     QStateHandler t = path[0]; // tran. target

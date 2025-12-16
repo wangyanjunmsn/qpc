@@ -41,7 +41,7 @@
 
 // QF configuration for QK -- data members of the QActive class...
 
-// QK event-queue used for AOs
+// QActive event queue type
 #define QACTIVE_EQUEUE_TYPE     QEQueue
 
 // QActive "thread" type used to store the MPU settings in the AO
@@ -145,8 +145,6 @@ static inline uint32_t QK_get_IPSR(void) {
 
 // initialization of the QK kernel
 #define QK_INIT()     QK_init()
-void QK_init(void);
-void QK_thread_ret(void);
 
 #ifdef __ARM_FP         //--------- if VFP available...
 // When the FPU is configured, clear the FPCA bit in the CONTROL register
@@ -165,6 +163,9 @@ void QF_int_disable_(void);
 void QF_int_enable_(void);
 void QF_crit_entry_(void);
 void QF_crit_exit_(void);
+
+void QK_init(void);
+void QK_thread_ret(void);
 
 //============================================================================
 // NOTE1:
